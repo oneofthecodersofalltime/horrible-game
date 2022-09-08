@@ -1,10 +1,10 @@
-import time
 import pygame
 import os
 
 pygame.init()
 pygame.font.init()
-pygame.display.set_caption("Paraplegic simulator")
+pygame.display.set_caption("The game of the secret")
+
 
 font = pygame.font.SysFont("Comic sans", 20)
 ho1_talk = font.render('I like monster trucks and firetrucks', True, (0, 0, 0))
@@ -25,6 +25,36 @@ screen = pygame.display.set_mode((HEIGHT, WIDTH))
 
 MAP_IMAGE = pygame.image.load(os.path.join("Assets", "map.png"))
 MAP = pygame.transform.scale(MAP_IMAGE, (HEIGHT, WIDTH))
+
+MAP_NO_GROUND_IMAGE = pygame.image.load(os.path.join("Assets", "mapnoground.png"))
+MAP_NO_GROUND = pygame.transform.scale(MAP_NO_GROUND_IMAGE, (HEIGHT, WIDTH))
+
+
+POND_IMAGE = pygame.image.load(os.path.join("Assets", "pong.png"))
+POND = pygame.transform.scale(POND_IMAGE, (HEIGHT, WIDTH))
+
+
+ICON_SIZE = 80
+
+
+QUESTION_IMAGE = pygame.image.load(os.path.join("Assets", "thisisno.png"))
+QUESTION = pygame.transform.scale(QUESTION_IMAGE, (ICON_SIZE, ICON_SIZE))
+
+CHECK_IMAGE = pygame.image.load(os.path.join("Assets", "no.png"))
+CHECK = pygame.transform.scale(CHECK_IMAGE, (ICON_SIZE, ICON_SIZE))
+
+QUESTS_BACKGROUND_IMAGE = pygame.image.load(os.path.join("Assets", "thisiscorkboard.png"))
+QUESTS_BACKGROUND = pygame.transform.scale(QUESTS_BACKGROUND_IMAGE, (ICON_SIZE, ICON_SIZE))
+
+INVENTORY_BACKGROUND_IMAGE = pygame.image.load(os.path.join("Assets", "inventorylist.png"))
+INVENTORY_BACKGROUND = pygame.transform.scale(INVENTORY_BACKGROUND_IMAGE, (ICON_SIZE, ICON_SIZE*2))
+
+QUESTS_ICON_IMAGE = pygame.image.load(os.path.join("Assets", "corkboard.png"))
+QUESTS_ICON = pygame.transform.scale(QUESTS_ICON_IMAGE, (ICON_SIZE, ICON_SIZE))
+
+INVENTORY_ICON_IMAGE = pygame.image.load(os.path.join("Assets", "bag.png"))
+INVENTORY_ICON = pygame.transform.scale(INVENTORY_ICON_IMAGE, (ICON_SIZE, ICON_SIZE))
+
 
 # main character set up
 MC_HEIGHT, MC_WIDTH = 100, 150
@@ -60,86 +90,127 @@ HO4 = pygame.transform.scale(HO4_IMAGE, (MC_HEIGHT, MC_WIDTH))
 
 
 def screen_printer(mc_facing, mc_player, house, ho1, ho2, ho3, ho4, keys_pressed, house_door, which_house, house_nw,
-                   house_sw, house_se, house_ne):
-    current_bg = HOUSE
-    if not house:
+                   house_sw, house_se, house_ne, town, bookshelf_interact, bookshelf, tv_interact, tv, ho1_time,
+                   ho2_time, ho3_time, ho4_time, roof_door, bag, quests):
+    if not house and town:
         current_bg = MAP
         house = False
-    if house:
+        if mc_player.colliderect(house_door):
+            mc_player.y = 50
+            town = False
+    elif house:
         current_bg = HOUSE
-        house = True
+        town = False
         if mc_player.colliderect(house_door) and keys_pressed[pygame.K_e]:
             house = False
+            town = True
             current_bg = MAP
             if which_house == "nw":
-                mc_player.x, mc_player.y = house_nw.x, house_nw.y+200
+                mc_player.x, mc_player.y = house_nw.x, house_nw.y + 200
             if which_house == "sw":
-                mc_player.x, mc_player.y = house_sw.x, house_sw.y+125
+                mc_player.x, mc_player.y = house_sw.x, house_sw.y + 125
             if which_house == "se":
-                mc_player.x, mc_player.y = house_se.x, house_se.y+125
+                mc_player.x, mc_player.y = house_se.x, house_se.y + 125
             if which_house == "ne":
-                mc_player.x, mc_player.y = house_ne.x, house_ne.y+125
+                mc_player.x, mc_player.y = house_ne.x, house_ne.y + 125
+    else:
+        current_bg = POND
+        if mc_player.colliderect(roof_door):
+            town = True
+            mc_player.y = 620
+
     screen.blit(current_bg, (0, 0))
-    if not house:
+    if not house and town:
         screen.blit(HO1, (ho1.x, ho1.y))
         screen.blit(HO2, (ho2.x, ho2.y))
         screen.blit(HO3, (ho3.x, ho3.y))
         screen.blit(HO4, (ho4.x, ho4.y))
 
     screen.blit(mc_facing, (mc_player.x, mc_player.y))
+    if town:
+        screen.blit(MAP_NO_GROUND, (0, 0))
+    for x in range(bookshelf_interact):
+        screen.blit(bookshelf_slander, (bookshelf.x, bookshelf.y))
+    for x in range(tv_interact):
+        screen.blit(tv_slander, (tv.x, tv.y))
+    for x in range(ho1_time):
+        screen.blit(ho1_talk, (ho1.x, ho1.y-20))
+    for x in range(ho2_time):
+        screen.blit(ho2_talk, (ho2.x, ho2.y-20))
+    for x in range(ho3_time):
+        screen.blit(ho3_talk, (ho3.x, ho3.y-20))
+    for x in range(ho4_time):
+        screen.blit(ho4_talk, (ho4.x, ho4.y-20))
+    screen.blit(INVENTORY_ICON, (bag.x, bag.y))
+    screen.blit(QUESTS_ICON, (quests.x, quests.y))
+
     pygame.display.update()
-    return house
+    return house, town
 
 
-def entering_system(mc_player, house_nw, house_sw, house_se, house_ne, ho1, keys_pressed, ho2, ho3, ho4):
+def entering_system(mc_player, house_nw, house_sw, house_se, house_ne, ho1, keys_pressed, ho2, ho3, ho4, town):
     # pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(210, 100, 250, 120))
-    if mc_player.colliderect(house_nw):
+    ho1_time = 0
+    ho2_time = 0
+    ho3_time = 0
+    ho4_time = 0
+
+    if mc_player.colliderect(house_nw) and keys_pressed[pygame.K_e] and town:
+        mc_player.x = HEIGHT/2-20
+        mc_player.y = WIDTH-200
         house = 1
         which_house = "nw"
-        return house, which_house
+        return house, which_house, ho1_time, ho2_time, ho3_time, ho4_time
     # pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(170, 300, 250, 250))
-    if mc_player.colliderect(house_sw):
+    if mc_player.colliderect(house_sw) and keys_pressed[pygame.K_e] and town:
+        mc_player.x = HEIGHT/2-20
+        mc_player.y = WIDTH-200
         house = 1
         which_house = "sw"
-        return house, which_house    # pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(780, 300, 250, 200))
-    if mc_player.colliderect(house_se):
+        return house, which_house, ho1_time, ho2_time, ho3_time, ho4_time
+    if mc_player.colliderect(house_se) and keys_pressed[pygame.K_e] and town:
+        mc_player.x = HEIGHT/2-20
+        mc_player.y = WIDTH-200
         house = 1
         which_house = "se"
-        return house, which_house
-    if mc_player.colliderect(house_ne):
+        return house, which_house, ho1_time, ho2_time, ho3_time, ho4_time
+    if mc_player.colliderect(house_ne) and keys_pressed[pygame.K_e] and town:
+        mc_player.x = HEIGHT/2-20
+        mc_player.y = WIDTH-200
         house = 1
         which_house = "ne"
-        return house, which_house
-    if mc_player.colliderect(ho1) and keys_pressed[pygame.K_e]:
-        screen.blit(ho1_talk, (ho1.x, ho1.y-20))
-        pygame.display.update()
-        time.sleep(2)
-    if mc_player.colliderect(ho2) and keys_pressed[pygame.K_e]:
-        screen.blit(ho2_talk, (ho2.x, ho2.y-20))
-        pygame.display.update()
-        time.sleep(2)
-    if mc_player.colliderect(ho3) and keys_pressed[pygame.K_e]:
-        screen.blit(ho3_talk, (ho3.x, ho3.y-20))
-        pygame.display.update()
-        time.sleep(2)
-    if mc_player.colliderect(ho4) and keys_pressed[pygame.K_e]:
-        screen.blit(ho4_talk, (ho4.x, ho4.y-20))
-        pygame.display.update()
-        time.sleep(2)
-    which_house = "nw"
+        return house, which_house, ho1_time, ho2_time, ho3_time, ho4_time
+    if mc_player.colliderect(ho1) and keys_pressed[pygame.K_e] and town:
+        ho1_time = 100
+    else:
+        ho1_time = 0
+    if mc_player.colliderect(ho2) and keys_pressed[pygame.K_e] and town:
+        ho2_time = 100
+    else:
+        ho2_time = 0
+    if mc_player.colliderect(ho3) and keys_pressed[pygame.K_e] and town:
+        ho3_time = 100
+    else:
+        ho3_time = 0
+    if mc_player.colliderect(ho4) and keys_pressed[pygame.K_e] and town:
+        ho4_time = 100
+    else:
+        ho4_time = 0
+    which_house = "none"
     house = False
-    return house, which_house
+    return house, which_house, ho1_time, ho2_time, ho3_time, ho4_time
 
 
-def indoor_system(mc_player, bookshelf, keys_pressed, tv):
-    if mc_player.colliderect(bookshelf) and keys_pressed[pygame.K_e]:
-        screen.blit(bookshelf_slander, (bookshelf.x, bookshelf.y))
-        pygame.display.update()
-        time.sleep(2)
-    if mc_player.colliderect(tv) and keys_pressed[pygame.K_e]:
-        screen.blit(tv_slander, (tv.x, tv.y))
-        pygame.display.update()
-        time.sleep(2)
+def indoor_system(mc_player, bookshelf, keys_pressed, tv, house):
+    if mc_player.colliderect(bookshelf) and keys_pressed[pygame.K_e] and house:
+        bookshelf_interact = 100
+    else:
+        bookshelf_interact = 0
+    if mc_player.colliderect(tv) and keys_pressed[pygame.K_e] and house:
+        tv_interact = 100
+    else:
+        tv_interact = 0
+    return bookshelf_interact, tv_interact
 
 
 def movement(keys_pressed, mc_player, mc_facing, anim):
@@ -166,6 +237,12 @@ def movement(keys_pressed, mc_player, mc_facing, anim):
     return mc_facing, anim
 
 
+def mouse_and_icons(bag, buttons_pressed):
+    if buttons_pressed[pygame.K_q]:
+        while True:
+            screen.blit()
+
+
 def main():
     anim = 0
     mc_player = pygame.Rect(600, 50, MC_WIDTH, MC_HEIGHT)
@@ -176,15 +253,25 @@ def main():
     house_sw = pygame.Rect(250, 370, 150, 100)
     house_se = pygame.Rect(860, 370, 150, 80)
     house_ne = pygame.Rect(820, 50, 150, 80)
-    house_door = pygame.Rect(500, 670, 200, 100)
+    house_door = pygame.Rect(500, WIDTH, 200, 50)
+    roof_door = pygame.Rect(500, 0, 200, 50)
     ho1 = pygame.Rect(house_nw.x+150, house_nw.y+150, MC_WIDTH, MC_HEIGHT)
-    ho2 = pygame.Rect(house_ne.x-150, house_ne.y + 100, MC_WIDTH, MC_HEIGHT)
-    ho3 = pygame.Rect(house_sw.x+150, house_sw.y + 100, MC_WIDTH, MC_HEIGHT)
-    ho4 = pygame.Rect(house_se.x-150, house_se.y + 100, MC_WIDTH, MC_HEIGHT)
+    ho2 = pygame.Rect(house_ne.x-75, house_ne.y+100, MC_WIDTH, MC_HEIGHT)
+    ho3 = pygame.Rect(house_sw.x+160, house_sw.y+140, MC_WIDTH, MC_HEIGHT)
+    ho4 = pygame.Rect(house_se.x-150, house_se.y+100, MC_WIDTH, MC_HEIGHT)
+    bag = pygame.Rect(10, 650, WIDTH-50, HEIGHT-50)
+    quests = pygame.Rect(1200, 10, ICON_SIZE, ICON_SIZE)
     bookshelf = pygame.Rect(125, 25, 250, 125)
     tv = pygame.Rect(50, 300, 300, 200)
-    which_house = "nw"
+    which_house = "none"
     house = False
+    town = True
+    tv_interact = 0
+    bookshelf_interact = 0
+    ho1_time = 0
+    ho2_time = 0
+    ho3_time = 0
+    ho4_time = 0
     while run:
         clock.tick(FPS)
         keys_pressed = pygame.key.get_pressed()
@@ -193,12 +280,16 @@ def main():
                 run = False  # quits from the game
         mc_facing, anim = movement(keys_pressed, mc_player, mc_facing, anim)
         if not house:
-            house, which_house = entering_system(mc_player, house_nw, house_sw, house_se, house_ne, ho1, keys_pressed,
-                                                 ho2, ho3, ho4)
+            house, which_house, ho1_time, ho2_time, ho3_time, ho4_time = entering_system(mc_player, house_nw, house_sw,
+                                                                                         house_se, house_ne, ho1,
+                                                                                         keys_pressed, ho2, ho3, ho4,
+                                                                                         town)
         if house:
-            indoor_system(mc_player, bookshelf, keys_pressed, tv)
-        house = screen_printer(mc_facing, mc_player, house, ho1, ho2, ho3, ho4, keys_pressed, house_door, which_house,
-                               house_nw, house_sw, house_se, house_ne)
+            bookshelf_interact, tv_interact = indoor_system(mc_player, bookshelf, keys_pressed, tv, house)
+        house, town = screen_printer(mc_facing, mc_player, house, ho1, ho2, ho3, ho4, keys_pressed, house_door,
+                                     which_house, house_nw, house_sw, house_se, house_ne, town, bookshelf_interact,
+                                     bookshelf, tv_interact, tv, ho1_time, ho2_time, ho3_time, ho4_time, roof_door, bag,
+                                     quests)
 
 
 if __name__ == '__main__':
